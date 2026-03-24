@@ -6,14 +6,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Truck, AlertTriangle, CheckCircle, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { companies } from "@/data/seed";
 
 export default function CompanyDashboard() {
   const { user } = useAuth();
-  const { pickups, issues } = useData();
-  const company = companies.find((c) => c.userId === user?.id);
-  const myPickups = pickups.filter((p) => p.companyId === company?.id);
-  const myIssues = issues.filter((i) => i.companyId === company?.id);
+  const { pickups, issues, companies } = useData();
+  const company = companies.find((c) => c.user_id === user?.id);
+  const myPickups = pickups.filter((p) => p.company_id === company?.id);
+  const myIssues = issues.filter((i) => i.company_id === company?.id);
 
   return (
     <AppLayout>
@@ -44,9 +43,9 @@ export default function CompanyDashboard() {
                 <TableBody>
                   {myPickups.map((p) => (
                     <TableRow key={p.id}>
-                      <TableCell className="font-medium">{p.householdName}</TableCell>
-                      <TableCell>{p.wasteType}</TableCell>
-                      <TableCell>{p.scheduledDate}</TableCell>
+                      <TableCell className="font-medium">{p.household_name}</TableCell>
+                      <TableCell>{p.waste_type}</TableCell>
+                      <TableCell>{p.scheduled_date}</TableCell>
                       <TableCell><StatusBadge status={p.status} type="pickup" /></TableCell>
                     </TableRow>
                   ))}

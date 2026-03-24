@@ -12,33 +12,34 @@ import { useToast } from "@/hooks/use-toast";
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleLogin = async (loginEmail: string, loginPassword: string) => {
+    setLoading(true);
+    const result = await login(loginEmail, loginPassword);
+    setLoading(false);
+    if (result.success) {
+      // Wait briefly for auth state to propagate
+      setTimeout(() => {
+        const cred = demoCredentials.find((c) => c.email === loginEmail);
+        const role = cred?.role.toLowerCase();
+        navigate(role === "admin" ? "/admin" : role === "company" ? "/company" : "/household");
+      }, 500);
+    } else {
+      toast({ title: "Login Failed", description: result.error || "Invalid credentials", variant: "destructive" });
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
       toast({ title: "Error", description: "Email is required", variant: "destructive" });
       return;
     }
-    const success = login(email, password);
-    if (success) {
-      const user = demoCredentials.find((c) => c.email === email);
-      const role = user?.role.toLowerCase();
-      navigate(role === "admin" ? "/admin" : role === "company" ? "/company" : "/household");
-    } else {
-      toast({ title: "Login Failed", description: "Invalid credentials. Use demo credentials below.", variant: "destructive" });
-    }
-  };
-
-  const quickLogin = (email: string) => {
-    const success = login(email, "");
-    if (success) {
-      const user = demoCredentials.find((c) => c.email === email);
-      const role = user?.role.toLowerCase();
-      navigate(role === "admin" ? "/admin" : role === "company" ? "/company" : "/household");
-    }
+    await handleLogin(email, password);
   };
 
   return (
@@ -61,14 +62,14 @@ export default function Login() {
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
-            <Button type="submit" className="w-full">Sign In</Button>
+            <Button type="submit" className="w-full" disabled={loading}>{loading ? "Signing in..." : "Sign In"}</Button>
           </form>
 
           <div className="mt-6 space-y-2">
             <p className="text-xs text-center text-muted-foreground font-medium">Quick Demo Login</p>
             <div className="grid gap-2">
               {demoCredentials.map((c) => (
-                <Button key={c.role} variant="outline" size="sm" className="w-full justify-between" onClick={() => quickLogin(c.email)}>
+                <Button key={c.role} variant="outline" size="sm" className="w-full justify-between" disabled={loading} onClick={() => handleLogin(c.email, c.password)}>
                   <span>{c.role}</span>
                   <span className="text-xs text-muted-foreground font-mono">{c.email}</span>
                 </Button>

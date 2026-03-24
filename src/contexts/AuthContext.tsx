@@ -1,62 +1,150 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
-import type { User, UserRole, Notification } from "@/types";
-import { users as seedUsers, notifications as seedNotifications } from "@/data/seed";
+import type { UserRole } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
+
+interface AppUser {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  supabaseId: string;
+}
+
+interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
+}
 
 interface AuthContextType {
-  user: User | null;
+  user: AppUser | null;
   notifications: Notification[];
   unreadCount: number;
-  login: (email: string, password: string) => boolean;
-  logout: () => void;
-  markNotificationRead: (id: string) => void;
-  addNotification: (n: Omit<Notification, "id" | "createdAt" | "read">) => void;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signup: (email: string, password: string, name: string, role: UserRole) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
+  markNotificationRead: (id: string) => Promise<void>;
+  refreshNotifications: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+async function buildAppUser(sbUser: SupabaseUser): Promise<AppUser | null> {
+  const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", sbUser.id).maybeSingle();
+  const { data: profileData } = await supabase.from("profiles").select("name").eq("user_id", sbUser.id).maybeSingle();
+
+  if (!roleData) return null;
+
+  return {
+    id: sbUser.id,
+    email: sbUser.email || "",
+    name: profileData?.name || sbUser.email || "",
+    role: roleData.role as UserRole,
+    supabaseId: sbUser.id,
+  };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    const stored = localStorage.getItem("cc_user");
-    return stored ? JSON.parse(stored) : null;
-  });
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [notifs, setNotifs] = useState<Notification[]>(seedNotifications);
-
-  useEffect(() => {
-    if (user) localStorage.setItem("cc_user", JSON.stringify(user));
-    else localStorage.removeItem("cc_user");
+  const fetchNotifications = useCallback(async () => {
+    if (!user) { setNotifications([]); return; }
+    const { data } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (data) {
+      setNotifications(data.map((n) => ({
+        id: n.id,
+        userId: n.user_id,
+        title: n.title,
+        message: n.message,
+        read: n.read,
+        createdAt: n.created_at,
+      })));
+    }
   }, [user]);
 
-  const login = useCallback((email: string, _password: string) => {
-    const found = seedUsers.find((u) => u.email === email);
-    if (found) {
-      setUser(found);
-      return true;
+  useEffect(() => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        // Use setTimeout to avoid potential deadlocks with Supabase client
+        setTimeout(async () => {
+          const appUser = await buildAppUser(session.user);
+          setUser(appUser);
+          setLoading(false);
+        }, 0);
+      } else {
+        setUser(null);
+        setNotifications([]);
+        setLoading(false);
+      }
+    });
+
+    // THEN check existing session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const appUser = await buildAppUser(session.user);
+        setUser(appUser);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  const login = useCallback(async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  }, []);
+
+  const signup = useCallback(async (email: string, password: string, name: string, role: UserRole) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name } },
+    });
+    if (error) return { success: false, error: error.message };
+    if (data.user) {
+      await supabase.from("user_roles").insert({ user_id: data.user.id, role });
+      if (role === "household") {
+        // They'll fill in profile details later
+      }
     }
-    return false;
+    return { success: true };
   }, []);
 
-  const logout = useCallback(() => setUser(null), []);
-
-  const markNotificationRead = useCallback((id: string) => {
-    setNotifs((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setNotifications([]);
   }, []);
 
-  const addNotification = useCallback(
-    (n: Omit<Notification, "id" | "createdAt" | "read">) => {
-      setNotifs((prev) => [
-        { ...n, id: `n${Date.now()}`, createdAt: new Date().toISOString().split("T")[0], read: false },
-        ...prev,
-      ]);
-    },
-    []
-  );
+  const markNotificationRead = useCallback(async (id: string) => {
+    await supabase.from("notifications").update({ read: true }).eq("id", id);
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  }, []);
 
-  const userNotifs = notifs.filter((n) => n.userId === user?.id);
-  const unreadCount = userNotifs.filter((n) => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <AuthContext.Provider value={{ user, notifications: userNotifs, unreadCount, login, logout, markNotificationRead, addNotification }}>
+    <AuthContext.Provider
+      value={{ user, notifications, unreadCount, loading, login, signup, logout, markNotificationRead, refreshNotifications: fetchNotifications }}
+    >
       {children}
     </AuthContext.Provider>
   );

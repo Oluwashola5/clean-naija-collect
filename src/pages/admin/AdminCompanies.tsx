@@ -1,7 +1,7 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useData } from "@/contexts/DataContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/StatusBadge";
 
 export default function AdminCompanies() {
@@ -26,10 +26,10 @@ export default function AdminCompanies() {
                 {companies.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.name}</TableCell>
-                    <TableCell>{c.registrationNumber}</TableCell>
+                    <TableCell>{c.registration_number}</TableCell>
                     <TableCell>{c.phone}</TableCell>
                     <TableCell><StatusBadge status={c.status} type="approval" /></TableCell>
-                    <TableCell>{c.createdAt}</TableCell>
+                    <TableCell>{c.created_at?.split("T")[0]}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

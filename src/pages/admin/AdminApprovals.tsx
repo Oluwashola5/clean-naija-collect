@@ -31,16 +31,16 @@ export default function AdminApprovals() {
                 <TableBody>
                   {approvals.map((a) => (
                     <TableRow key={a.id}>
-                      <TableCell className="font-medium">{a.companyName}</TableCell>
-                      <TableCell>{a.createdAt}</TableCell>
+                      <TableCell className="font-medium">{a.company_name}</TableCell>
+                      <TableCell>{a.created_at?.split("T")[0]}</TableCell>
                       <TableCell><StatusBadge status={a.status} type="approval" /></TableCell>
                       <TableCell>
                         {a.status === "pending" ? (
                           <div className="flex gap-2">
-                            <Button size="sm" onClick={() => { approveCompany(a.id); toast({ title: "Approved", description: `${a.companyName} has been approved.` }); }}>
+                            <Button size="sm" onClick={async () => { await approveCompany(a.id, a.company_id); toast({ title: "Approved", description: `${a.company_name} approved.` }); }}>
                               Approve
                             </Button>
-                            <Button size="sm" variant="destructive" onClick={() => { rejectCompany(a.id); toast({ title: "Rejected", description: `${a.companyName} has been rejected.` }); }}>
+                            <Button size="sm" variant="destructive" onClick={async () => { await rejectCompany(a.id, a.company_id); toast({ title: "Rejected", description: `${a.company_name} rejected.` }); }}>
                               Reject
                             </Button>
                           </div>

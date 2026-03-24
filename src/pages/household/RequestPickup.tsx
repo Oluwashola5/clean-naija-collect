@@ -8,40 +8,40 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { households, serviceAreas } from "@/data/seed";
+import { Card, CardContent } from "@/components/ui/card";
+import { useHouseholdProfile } from "@/hooks/useHouseholdProfile";
 import { useToast } from "@/hooks/use-toast";
 
-const wasteTypes = ["General Waste", "Recyclables", "Organic Waste", "Bulky Items    ", "Hazardous Waste"];
+const wasteTypes = ["General Waste", "Recyclables", "Organic Waste", "Bulky Items", "Hazardous Waste"];
 
 export default function RequestPickup() {
   const { user } = useAuth();
-  const { addPickup } = useData();
+  const { addPickup, serviceAreas } = useData();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const household = households.find((h) =>	h.userId === user?.id);
+  const { household } = useHouseholdProfile();
 
   const [wasteType, setWasteType] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
-  
-  const handleSubmit = (e: React.FormEvent) => {
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!wasteType || !description || !date) {
+    if (!wasteType || !description || !date || !household) {
       toast({ title: "Validation Error", description: "Please fill all fields", variant: "destructive" });
       return;
     }
-    addPickup({
-      householdId: household?.id || "h1",
-      householdName: user?.name || "",
-      address: household?.address || "",
-      serviceAreaId: "sa1",
-      wasteType,
+    await addPickup({
+      household_id: household.id,
+      household_name: user?.name || "",
+      address: household.address,
+      service_area_id: serviceAreas[0]?.id || null,
+      waste_type: wasteType,
       description,
-      scheduledDate: date,
+      scheduled_date: date,
       status: "Pending",
     });
-    toast({ title: "Pickup Requested", description: "Your pickup request has been submitted successfully." });
+    toast({ title: "Pickup Requested", description: "Your pickup request has been submitted." });
     navigate("/household");
   };
 
@@ -56,7 +56,7 @@ export default function RequestPickup() {
                 <Label htmlFor="wasteType">Waste Type</Label>
                 <Select value={wasteType} onValueChange={setWasteType}>
                   <SelectTrigger id="wasteType"><SelectValue placeholder="Select waste type" /></SelectTrigger>
-                  <SelectContent>{wasteTypes.map((t) => (<SelectItem key={t} value={t.trim()}>{t.trim()}</SelectItem>))}</SelectContent>
+                  <SelectContent>{wasteTypes.map((t) => (<SelectItem key={t} value={t}>{t}</SelectItem>))}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
@@ -65,11 +65,11 @@ export default function RequestPickup() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
-                <Textarea id="description" placeholder="Describe the waste to be collected..." value={description} onChange={(e) => setDescription(e.target.value)} required />
+                <Textarea id="description" placeholder="Describe the waste..." value={description} onChange={(e) => setDescription(e.target.value)} required />
               </div>
               <div className="space-y-2">
                 <Label>Pickup Address</Label>
-                <Input value={household?.address || "N/A"} disabled />
+                <Input value={household?.address || "Loading..."} disabled />
               </div>
               <Button type="submit" className="w-full">Submit Request</Button>
             </form>

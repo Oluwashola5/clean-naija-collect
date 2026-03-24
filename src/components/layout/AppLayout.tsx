@@ -2,22 +2,13 @@ import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarTrigger,
-  useSidebar,
+  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
 } from "@/components/ui/sidebar";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import {
-  LayoutDashboard, Users, Building2, MapPin, ClipboardList, AlertTriangle, CheckSquare, Bell, User, LogOut, Truck, FileText, Plus, History, Menu, Recycle,
+  LayoutDashboard, Users, Building2, MapPin, AlertTriangle, CheckSquare, Bell, User, LogOut, Truck, Plus, History, Recycle,
 } from "lucide-react";
 
 const adminNav = [
@@ -49,7 +40,6 @@ function AppSidebar() {
   const { user } = useAuth();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const location = useLocation();
 
   const navItems = user?.role === "admin" ? adminNav : user?.role === "company" ? companyNav : householdNav;
 
@@ -91,8 +81,8 @@ function TopBar() {
   const { user, logout, unreadCount } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
   };
 
@@ -126,6 +116,30 @@ function TopBar() {
 }
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <Recycle className="h-10 w-10 text-primary animate-spin" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-4">Please log in to continue</p>
+          <Button asChild><Link to="/login">Go to Login</Link></Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">

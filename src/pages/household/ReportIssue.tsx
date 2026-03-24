@@ -8,47 +8,65 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { households } from "@/data/seed";
+import { useHouseholdProfile } from "@/hooks/useHouseholdProfile";
 import { useToast } from "@/hooks/use-toast";
 import { Upload } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function ReportIssue() {
   const { user } = useAuth();
-  const { addIssue } = useData();
+  const { addIssue, serviceAreas } = useData();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const household = households.find((h) => h.userId === user?.id);
+  const { household } = useHouseholdProfile();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setImagePreview(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !description) {
+    if (!title || !description || !household) {
       toast({ title: "Validation Error", description: "Please fill all required fields", variant: "destructive" });
       return;
     }
-    addIssue({
-      householdId: household?.id || "h1",
-      householdName: user?.name || "",
-      address: household?.address || "",
-      serviceAreaId: "sa1",
+    setSubmitting(true);
+
+    let imageUrl: string | undefined;
+    if (imageFile) {
+      const fileName = `${user?.id}/${Date.now()}-${imageFile.name}`;
+      const { data, error } = await supabase.storage.from("issue-images").upload(fileName, imageFile);
+      if (!error && data) {
+        const { data: urlData } = supabase.storage.from("issue-images").getPublicUrl(data.path);
+        imageUrl = urlData.publicUrl;
+      }
+    }
+
+    await addIssue({
+      household_id: household.id,
+      household_name: user?.name || "",
+      address: household.address,
+      service_area_id: serviceAreas[0]?.id || null,
       title,
       description,
-      imageUrl: imagePreview || undefined,
+      image_url: imageUrl || null,
       status: "New",
     });
+
     toast({ title: "Issue Reported", description: "Your issue report has been submitted." });
+    setSubmitting(false);
     navigate("/household");
   };
 
@@ -65,7 +83,7 @@ export default function ReportIssue() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
-                <Textarea id="description" placeholder="Describe the issue in detail..." value={description} onChange={(e) => setDescription(e.target.value)} required rows={4} />
+                <Textarea id="description" placeholder="Describe the issue..." value={description} onChange={(e) => setDescription(e.target.value)} required rows={4} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="image">Upload Photo (optional)</Label>
@@ -85,9 +103,9 @@ export default function ReportIssue() {
               </div>
               <div className="space-y-2">
                 <Label>Location</Label>
-                <Input value={household?.address || "N/A"} disabled />
+                <Input value={household?.address || "Loading..."} disabled />
               </div>
-              <Button type="submit" className="w-full">Submit Report</Button>
+              <Button type="submit" className="w-full" disabled={submitting}>{submitting ? "Submitting..." : "Submit Report"}</Button>
             </form>
           </CardContent>
         </Card>

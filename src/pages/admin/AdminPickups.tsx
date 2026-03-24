@@ -4,14 +4,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { companies } from "@/data/seed";
 import type { PickupStatus } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 
 const statuses: PickupStatus[] = ["Pending", "Assigned", "In Progress", "Completed", "Cancelled"];
 
 export default function AdminPickups() {
-  const { pickups, updatePickupStatus } = useData();
+  const { pickups, companies, updatePickupStatus } = useData();
   const { toast } = useToast();
 
   return (
@@ -34,17 +33,17 @@ export default function AdminPickups() {
               <TableBody>
                 {pickups.map((p) => (
                   <TableRow key={p.id}>
-                    <TableCell className="font-medium">{p.householdName}</TableCell>
-                    <TableCell>{p.wasteType}</TableCell>
-                    <TableCell>{p.companyName || "Unassigned"}</TableCell>
-                    <TableCell>{p.scheduledDate}</TableCell>
+                    <TableCell className="font-medium">{p.household_name}</TableCell>
+                    <TableCell>{p.waste_type}</TableCell>
+                    <TableCell>{p.company_name || "Unassigned"}</TableCell>
+                    <TableCell>{p.scheduled_date}</TableCell>
                     <TableCell><StatusBadge status={p.status} type="pickup" /></TableCell>
                     <TableCell>
                       <Select
                         value={p.status}
-                        onValueChange={(v) => {
+                        onValueChange={async (v) => {
                           const company = companies.find((c) => c.status === "approved");
-                          updatePickupStatus(p.id, v as PickupStatus, company?.id, company?.name);
+                          await updatePickupStatus(p.id, v, company?.id, company?.name);
                           toast({ title: "Updated", description: `Pickup status changed to ${v}` });
                         }}
                       >
