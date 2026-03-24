@@ -8,14 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { households } from "@/data/seed";
+import { useHouseholdProfile } from "@/hooks/useHouseholdProfile";
 
 export default function HouseholdDashboard() {
   const { user } = useAuth();
   const { pickups, issues } = useData();
-  const household = households.find((h) => h.userId === user?.id);
-  const myPickups = pickups.filter((p) => p.householdId === household?.id);
-  const myIssues = issues.filter((i) => i.householdId === household?.id);
+  const { household } = useHouseholdProfile();
+  const myPickups = pickups.filter((p) => p.household_id === household?.id);
+  const myIssues = issues.filter((i) => i.household_id === household?.id);
 
   return (
     <AppLayout>
@@ -44,9 +44,9 @@ export default function HouseholdDashboard() {
                 <TableBody>
                   {myPickups.map((p) => (
                     <TableRow key={p.id}>
-                      <TableCell className="font-medium">{p.wasteType}</TableCell>
-                      <TableCell>{p.scheduledDate}</TableCell>
-                      <TableCell>{p.companyName || "Pending assignment"}</TableCell>
+                      <TableCell className="font-medium">{p.waste_type}</TableCell>
+                      <TableCell>{p.scheduled_date}</TableCell>
+                      <TableCell>{p.company_name || "Pending assignment"}</TableCell>
                       <TableCell><StatusBadge status={p.status} type="pickup" /></TableCell>
                     </TableRow>
                   ))}

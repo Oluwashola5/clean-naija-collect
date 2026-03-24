@@ -3,11 +3,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { households } from "@/data/seed";
+import { useHouseholdProfile } from "@/hooks/useHouseholdProfile";
 
 export default function HouseholdProfile() {
   const { user } = useAuth();
-  const household = households.find((h) => h.userId === user?.id);
+  const { household } = useHouseholdProfile();
 
   return (
     <AppLayout>

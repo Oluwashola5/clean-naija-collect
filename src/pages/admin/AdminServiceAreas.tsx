@@ -1,9 +1,10 @@
 import { AppLayout } from "@/components/layout/AppLayout";
-import { serviceAreas } from "@/data/seed";
+import { useData } from "@/contexts/DataContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default function AdminServiceAreas() {
+  const { serviceAreas } = useData();
   return (
     <AppLayout>
       <div className="space-y-6">
