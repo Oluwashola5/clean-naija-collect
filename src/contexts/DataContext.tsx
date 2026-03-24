@@ -1,78 +1,108 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
-import type { PickupRequest, IssueReport, WasteCompany, ApprovalRequest } from "@/types";
-import {
-  pickupRequests as seedPickups,
-  issueReports as seedIssues,
-  companies as seedCompanies,
-  approvalRequests as seedApprovals,
-} from "@/data/seed";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import type { Database } from "@/integrations/supabase/types";
+
+type PickupRow = Database["public"]["Tables"]["pickup_requests"]["Row"];
+type IssueRow = Database["public"]["Tables"]["issue_reports"]["Row"];
+type CompanyRow = Database["public"]["Tables"]["waste_companies"]["Row"];
+type ApprovalRow = Database["public"]["Tables"]["approval_requests"]["Row"];
+type ServiceAreaRow = Database["public"]["Tables"]["service_areas"]["Row"];
 
 interface DataContextType {
-  pickups: PickupRequest[];
-  issues: IssueReport[];
-  companies: WasteCompany[];
-  approvals: ApprovalRequest[];
-  addPickup: (p: Omit<PickupRequest, "id" | "createdAt" | "updatedAt">) => void;
-  updatePickupStatus: (id: string, status: PickupRequest["status"], companyId?: string, companyName?: string) => void;
-  addIssue: (i: Omit<IssueReport, "id" | "createdAt" | "updatedAt">) => void;
-  updateIssueStatus: (id: string, status: IssueReport["status"], companyId?: string, companyName?: string) => void;
-  approveCompany: (approvalId: string) => void;
-  rejectCompany: (approvalId: string) => void;
+  pickups: PickupRow[];
+  issues: IssueRow[];
+  companies: CompanyRow[];
+  approvals: ApprovalRow[];
+  serviceAreas: ServiceAreaRow[];
+  loading: boolean;
+  refresh: () => Promise<void>;
+  addPickup: (p: Database["public"]["Tables"]["pickup_requests"]["Insert"]) => Promise<void>;
+  updatePickupStatus: (id: string, status: string, companyId?: string, companyName?: string) => Promise<void>;
+  addIssue: (i: Database["public"]["Tables"]["issue_reports"]["Insert"]) => Promise<void>;
+  updateIssueStatus: (id: string, status: string, companyId?: string, companyName?: string) => Promise<void>;
+  approveCompany: (approvalId: string, companyId: string) => Promise<void>;
+  rejectCompany: (approvalId: string, companyId: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | null>(null);
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
-  const [pickups, setPickups] = useState<PickupRequest[]>(seedPickups);
-  const [issues, setIssues] = useState<IssueReport[]>(seedIssues);
-  const [companies, setCompanies] = useState<WasteCompany[]>(seedCompanies);
-  const [approvals, setApprovals] = useState<ApprovalRequest[]>(seedApprovals);
+  const { user } = useAuth();
+  const [pickups, setPickups] = useState<PickupRow[]>([]);
+  const [issues, setIssues] = useState<IssueRow[]>([]);
+  const [companies, setCompanies] = useState<CompanyRow[]>([]);
+  const [approvals, setApprovals] = useState<ApprovalRow[]>([]);
+  const [serviceAreas, setServiceAreas] = useState<ServiceAreaRow[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const today = () => new Date().toISOString().split("T")[0];
+  const refresh = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
 
-  const addPickup = useCallback((p: Omit<PickupRequest, "id" | "createdAt" | "updatedAt">) => {
-    setPickups((prev) => [{ ...p, id: `p${Date.now()}`, createdAt: today(), updatedAt: today() }, ...prev]);
-  }, []);
+    const [pickupsRes, issuesRes, companiesRes, serviceAreasRes] = await Promise.all([
+      supabase.from("pickup_requests").select("*").order("created_at", { ascending: false }),
+      supabase.from("issue_reports").select("*").order("created_at", { ascending: false }),
+      supabase.from("waste_companies").select("*").order("created_at", { ascending: false }),
+      supabase.from("service_areas").select("*").order("name"),
+    ]);
 
-  const updatePickupStatus = useCallback((id: string, status: PickupRequest["status"], companyId?: string, companyName?: string) => {
-    setPickups((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, status, updatedAt: today(), ...(companyId ? { companyId, companyName } : {}) } : p
-      )
-    );
-  }, []);
+    if (pickupsRes.data) setPickups(pickupsRes.data);
+    if (issuesRes.data) setIssues(issuesRes.data);
+    if (companiesRes.data) setCompanies(companiesRes.data);
+    if (serviceAreasRes.data) setServiceAreas(serviceAreasRes.data);
 
-  const addIssue = useCallback((i: Omit<IssueReport, "id" | "createdAt" | "updatedAt">) => {
-    setIssues((prev) => [{ ...i, id: `i${Date.now()}`, createdAt: today(), updatedAt: today() }, ...prev]);
-  }, []);
-
-  const updateIssueStatus = useCallback((id: string, status: IssueReport["status"], companyId?: string, companyName?: string) => {
-    setIssues((prev) =>
-      prev.map((i) =>
-        i.id === id ? { ...i, status, updatedAt: today(), ...(companyId ? { companyId, companyName } : {}) } : i
-      )
-    );
-  }, []);
-
-  const approveCompany = useCallback((approvalId: string) => {
-    setApprovals((prev) => prev.map((a) => (a.id === approvalId ? { ...a, status: "approved" as const } : a)));
-    const approval = approvals.find((a) => a.id === approvalId);
-    if (approval) {
-      setCompanies((prev) => prev.map((c) => (c.id === approval.companyId ? { ...c, status: "approved" as const } : c)));
+    if (user.role === "admin") {
+      const appRes = await supabase.from("approval_requests").select("*").order("created_at", { ascending: false });
+      if (appRes.data) setApprovals(appRes.data);
     }
-  }, [approvals]);
 
-  const rejectCompany = useCallback((approvalId: string) => {
-    setApprovals((prev) => prev.map((a) => (a.id === approvalId ? { ...a, status: "rejected" as const } : a)));
-    const approval = approvals.find((a) => a.id === approvalId);
-    if (approval) {
-      setCompanies((prev) => prev.map((c) => (c.id === approval.companyId ? { ...c, status: "rejected" as const } : c)));
-    }
-  }, [approvals]);
+    setLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const addPickup = useCallback(async (p: Database["public"]["Tables"]["pickup_requests"]["Insert"]) => {
+    await supabase.from("pickup_requests").insert(p);
+    await refresh();
+  }, [refresh]);
+
+  const updatePickupStatus = useCallback(async (id: string, status: string, companyId?: string, companyName?: string) => {
+    const update: any = { status };
+    if (companyId) { update.company_id = companyId; update.company_name = companyName; }
+    await supabase.from("pickup_requests").update(update).eq("id", id);
+    await refresh();
+  }, [refresh]);
+
+  const addIssue = useCallback(async (i: Database["public"]["Tables"]["issue_reports"]["Insert"]) => {
+    await supabase.from("issue_reports").insert(i);
+    await refresh();
+  }, [refresh]);
+
+  const updateIssueStatus = useCallback(async (id: string, status: string, companyId?: string, companyName?: string) => {
+    const update: any = { status };
+    if (companyId) { update.company_id = companyId; update.company_name = companyName; }
+    await supabase.from("issue_reports").update(update).eq("id", id);
+    await refresh();
+  }, [refresh]);
+
+  const approveCompany = useCallback(async (approvalId: string, companyId: string) => {
+    await supabase.from("approval_requests").update({ status: "approved" }).eq("id", approvalId);
+    await supabase.from("waste_companies").update({ status: "approved" }).eq("id", companyId);
+    await refresh();
+  }, [refresh]);
+
+  const rejectCompany = useCallback(async (approvalId: string, companyId: string) => {
+    await supabase.from("approval_requests").update({ status: "rejected" }).eq("id", approvalId);
+    await supabase.from("waste_companies").update({ status: "rejected" }).eq("id", companyId);
+    await refresh();
+  }, [refresh]);
 
   return (
     <DataContext.Provider
-      value={{ pickups, issues, companies, approvals, addPickup, updatePickupStatus, addIssue, updateIssueStatus, approveCompany, rejectCompany }}
+      value={{ pickups, issues, companies, approvals, serviceAreas, loading, refresh, addPickup, updatePickupStatus, addIssue, updateIssueStatus, approveCompany, rejectCompany }}
     >
       {children}
     </DataContext.Provider>
