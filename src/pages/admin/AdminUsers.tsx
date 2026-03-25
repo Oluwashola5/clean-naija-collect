@@ -31,13 +31,21 @@ export default function AdminUsers() {
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    const res = await supabase.functions.invoke("manage-users", {
-      body: { action: "list" },
-    });
-    if (res.data?.users) setUsers(res.data.users);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-users", {
+        body: { action: "list" },
+      });
+      if (error) {
+        console.error("manage-users error:", error);
+        toast({ title: "Error loading users", description: String(error), variant: "destructive" });
+      } else if (data?.users) {
+        setUsers(data.users);
+      }
+    } catch (err) {
+      console.error("manage-users fetch error:", err);
+    }
     setLoading(false);
-  }, []);
+  }, [toast]);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
