@@ -23,8 +23,10 @@ import AdminIssues from "./pages/admin/AdminIssues";
 import CompanyDashboard from "./pages/company/CompanyDashboard";
 import CompanyPickups from "./pages/company/CompanyPickups";
 import CompanyIssues from "./pages/company/CompanyIssues";
+import CompanyRequests from "./pages/company/CompanyRequests";
 
 import HouseholdDashboard from "./pages/household/HouseholdDashboard";
+import SelectCompany from "./pages/household/SelectCompany";
 import RequestPickup from "./pages/household/RequestPickup";
 import ReportIssue from "./pages/household/ReportIssue";
 import HouseholdHistory from "./pages/household/HouseholdHistory";
@@ -58,8 +60,10 @@ const App = () => (
               <Route path="/company" element={<CompanyDashboard />} />
               <Route path="/company/pickups" element={<CompanyPickups />} />
               <Route path="/company/issues" element={<CompanyIssues />} />
+              <Route path="/company/requests" element={<CompanyRequests />} />
 
               <Route path="/household" element={<HouseholdDashboard />} />
+              <Route path="/household/select-company" element={<SelectCompany />} />
               <Route path="/household/request-pickup" element={<RequestPickup />} />
               <Route path="/household/report-issue" element={<ReportIssue />} />
               <Route path="/household/history" element={<HouseholdHistory />} />
