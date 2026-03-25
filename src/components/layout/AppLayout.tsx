@@ -25,10 +25,12 @@ const companyNav = [
   { title: "Dashboard", url: "/company", icon: LayoutDashboard },
   { title: "Pickups", url: "/company/pickups", icon: Truck },
   { title: "Issues", url: "/company/issues", icon: AlertTriangle },
+  { title: "Requests", url: "/company/requests", icon: Users },
 ];
 
 const householdNav = [
   { title: "Dashboard", url: "/household", icon: LayoutDashboard },
+  { title: "My Company", url: "/household/select-company", icon: Building2 },
   { title: "Request Pickup", url: "/household/request-pickup", icon: Plus },
   { title: "Report Issue", url: "/household/report-issue", icon: AlertTriangle },
   { title: "History", url: "/household/history", icon: History },

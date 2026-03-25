@@ -46,6 +46,54 @@ export type Database = {
           },
         ]
       }
+      company_requests: {
+        Row: {
+          company_id: string
+          company_name: string
+          created_at: string
+          household_id: string
+          household_name: string
+          id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          company_name: string
+          created_at?: string
+          household_id: string
+          household_name: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          company_name?: string
+          created_at?: string
+          household_id?: string
+          household_name?: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "waste_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_requests_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "household_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_service_areas: {
         Row: {
           company_id: string
@@ -310,6 +358,7 @@ export type Database = {
           lga: string
           name: string
           state: string
+          status: string
         }
         Insert: {
           created_at?: string
@@ -317,6 +366,7 @@ export type Database = {
           lga: string
           name: string
           state: string
+          status?: string
         }
         Update: {
           created_at?: string
@@ -324,6 +374,7 @@ export type Database = {
           lga?: string
           name?: string
           state?: string
+          status?: string
         }
         Relationships: []
       }
