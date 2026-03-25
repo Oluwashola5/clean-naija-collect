@@ -80,7 +80,7 @@ export default function SelectCompany() {
                       <p>{c.phone}</p>
                     </div>
                     {status === "pending" && <Badge variant="secondary">Request Pending</Badge>}
-                    {status === "accepted" && <Badge className="bg-green-600 text-white">Accepted</Badge>}
+                    {status === "accepted" && <Badge variant="default">Accepted</Badge>}
                     {status === "rejected" && <Badge variant="destructive">Rejected</Badge>}
                     {!status && (
                       <Button size="sm" className="w-full" disabled={sending === c.id} onClick={() => sendRequest(c)}>
