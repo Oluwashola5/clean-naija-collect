@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 
 interface UserWithRole {
@@ -19,7 +20,35 @@ interface UserWithRole {
   created_at: string;
 }
 
+async function invokeManageUsers(payload: Record<string, unknown>) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+
+  if (!accessToken) {
+    throw new Error("No active session. Please sign in again.");
+  }
+
+  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-users`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const responseData = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(responseData?.error || `Request failed (${response.status})`);
+  }
+
+  return responseData;
+}
+
 export default function AdminUsers() {
+  const { user, loading: authLoading } = useAuth();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
@@ -30,22 +59,33 @@ export default function AdminUsers() {
   const { toast } = useToast();
 
   const fetchUsers = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("manage-users", {
-        body: { action: "list" },
-      });
-      if (error) {
-        console.error("manage-users error:", error);
-        toast({ title: "Error loading users", description: String(error), variant: "destructive" });
-      } else if (data?.users) {
-        setUsers(data.users);
-      }
-    } catch (err) {
-      console.error("manage-users fetch error:", err);
+    if (authLoading) return;
+
+    if (!user) {
+      setUsers([]);
+      setLoading(false);
+      return;
     }
-    setLoading(false);
-  }, [toast]);
+
+    if (user.role !== "admin") {
+      setUsers([]);
+      setLoading(false);
+      toast({ title: "Access denied", description: "Only admins can view users.", variant: "destructive" });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const data = await invokeManageUsers({ action: "list" });
+      setUsers(Array.isArray(data?.users) ? data.users : []);
+    } catch (err: any) {
+      toast({ title: "Error loading users", description: err.message || "Failed to fetch users", variant: "destructive" });
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [authLoading, user, toast]);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
@@ -54,43 +94,40 @@ export default function AdminUsers() {
       toast({ title: "Validation", description: "All fields required", variant: "destructive" });
       return;
     }
-    const res = await supabase.functions.invoke("manage-users", {
-      body: { action: "create", ...form },
-    });
-    if (res.data?.error) {
-      toast({ title: "Error", description: res.data.error, variant: "destructive" });
-    } else {
+
+    try {
+      await invokeManageUsers({ action: "create", ...form });
       toast({ title: "User Created" });
       setAddOpen(false);
       setForm({ email: "", password: "", name: "", role: "household" });
       fetchUsers();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to create user", variant: "destructive" });
     }
   };
 
   const handleEdit = async () => {
     if (!editUser) return;
-    const res = await supabase.functions.invoke("manage-users", {
-      body: { action: "update", userId: editUser.id, ...editForm },
-    });
-    if (res.data?.error) {
-      toast({ title: "Error", description: res.data.error, variant: "destructive" });
-    } else {
+
+    try {
+      await invokeManageUsers({ action: "update", userId: editUser.id, ...editForm });
       toast({ title: "User Updated" });
       setEditOpen(false);
       fetchUsers();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to update user", variant: "destructive" });
     }
   };
 
   const handleDelete = async (userId: string, userName: string) => {
     if (!confirm(`Delete user "${userName}"?`)) return;
-    const res = await supabase.functions.invoke("manage-users", {
-      body: { action: "delete", userId },
-    });
-    if (res.data?.error) {
-      toast({ title: "Error", description: res.data.error, variant: "destructive" });
-    } else {
+
+    try {
+      await invokeManageUsers({ action: "delete", userId });
       toast({ title: "User Deleted" });
       fetchUsers();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to delete user", variant: "destructive" });
     }
   };
 
