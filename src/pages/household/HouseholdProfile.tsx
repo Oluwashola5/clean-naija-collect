@@ -1,18 +1,28 @@
+import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Pencil } from "lucide-react";
 import { useHouseholdProfile } from "@/hooks/useHouseholdProfile";
+import { EditHouseholdProfileDialog } from "@/components/EditHouseholdProfileDialog";
 
 export default function HouseholdProfile() {
   const { user } = useAuth();
-  const { household } = useHouseholdProfile();
+  const { household, loading, refetch } = useHouseholdProfile();
+  const [editOpen, setEditOpen] = useState(false);
 
   return (
     <AppLayout>
       <div className="max-w-xl mx-auto space-y-6">
-        <h1 className="text-2xl font-bold">My Profile</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">My Profile</h1>
+          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+            <Pencil className="h-4 w-4 mr-2" /> Edit
+          </Button>
+        </div>
         <Card>
           <CardHeader><CardTitle className="text-sm">Personal Information</CardTitle></CardHeader>
           <CardContent className="space-y-4">
@@ -26,6 +36,15 @@ export default function HouseholdProfile() {
             </div>
           </CardContent>
         </Card>
+
+        <EditHouseholdProfileDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          household={household}
+          userName={user?.name}
+          showNameField
+          onSaved={() => refetch()}
+        />
       </div>
     </AppLayout>
   );

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -11,23 +11,30 @@ interface HouseholdProfile {
   phone: string;
 }
 
-export function useHouseholdProfile() {
+export function useHouseholdProfile(userId?: string) {
   const { user } = useAuth();
   const [household, setHousehold] = useState<HouseholdProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!user) { setHousehold(null); setLoading(false); return; }
+  const targetUserId = userId || user?.id;
+
+  const fetchProfile = useCallback(() => {
+    if (!targetUserId) { setHousehold(null); setLoading(false); return; }
+    setLoading(true);
     supabase
       .from("household_profiles")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", targetUserId)
       .maybeSingle()
       .then(({ data }) => {
         setHousehold(data);
         setLoading(false);
       });
-  }, [user]);
+  }, [targetUserId]);
 
-  return { household, loading };
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
+  return { household, loading, refetch: fetchProfile };
 }
