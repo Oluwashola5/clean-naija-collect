@@ -24,6 +24,7 @@ import CompanyDashboard from "./pages/company/CompanyDashboard";
 import CompanyPickups from "./pages/company/CompanyPickups";
 import CompanyIssues from "./pages/company/CompanyIssues";
 import CompanyRequests from "./pages/company/CompanyRequests";
+import CompanyProfile from "./pages/company/CompanyProfile";
 
 import HouseholdDashboard from "./pages/household/HouseholdDashboard";
 import SelectCompany from "./pages/household/SelectCompany";
@@ -61,6 +62,7 @@ const App = () => (
               <Route path="/company/pickups" element={<CompanyPickups />} />
               <Route path="/company/issues" element={<CompanyIssues />} />
               <Route path="/company/requests" element={<CompanyRequests />} />
+              <Route path="/company/profile" element={<CompanyProfile />} />
 
               <Route path="/household" element={<HouseholdDashboard />} />
               <Route path="/household/select-company" element={<SelectCompany />} />
