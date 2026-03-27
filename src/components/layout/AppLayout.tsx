@@ -26,6 +26,7 @@ const companyNav = [
   { title: "Pickups", url: "/company/pickups", icon: Truck },
   { title: "Issues", url: "/company/issues", icon: AlertTriangle },
   { title: "Requests", url: "/company/requests", icon: Users },
+  { title: "Profile", url: "/company/profile", icon: User },
 ];
 
 const householdNav = [
