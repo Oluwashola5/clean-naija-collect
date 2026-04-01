@@ -8,10 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
 import { useHouseholdProfile } from "@/hooks/useHouseholdProfile";
 import { EditHouseholdProfileDialog } from "@/components/EditHouseholdProfileDialog";
+import { AddressManager } from "@/components/AddressManager";
+import { useAddresses } from "@/hooks/useAddresses";
 
 export default function HouseholdProfile() {
   const { user } = useAuth();
   const { household, loading, refetch } = useHouseholdProfile();
+  const { addresses, upsertAddress, deleteAddress } = useAddresses();
   const [editOpen, setEditOpen] = useState(false);
 
   return (
@@ -36,6 +39,8 @@ export default function HouseholdProfile() {
             </div>
           </CardContent>
         </Card>
+
+        <AddressManager addresses={addresses} onSave={upsertAddress} onDelete={deleteAddress} />
 
         <EditHouseholdProfileDialog
           open={editOpen}

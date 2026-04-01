@@ -9,11 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { EditCompanyProfileDialog } from "@/components/EditCompanyProfileDialog";
+import { AddressManager } from "@/components/AddressManager";
+import { useAddresses } from "@/hooks/useAddresses";
 
 export default function CompanyProfile() {
   const { user } = useAuth();
   const { companies, refresh } = useData();
   const company = companies.find((c) => c.user_id === user?.id) || null;
+  const { addresses, upsertAddress, deleteAddress } = useAddresses();
   const [editOpen, setEditOpen] = useState(false);
 
   return (
@@ -43,6 +46,8 @@ export default function CompanyProfile() {
         ) : (
           <p className="text-muted-foreground text-center py-8">No company profile found.</p>
         )}
+
+        <AddressManager addresses={addresses} onSave={upsertAddress} onDelete={deleteAddress} />
 
         <EditCompanyProfileDialog
           open={editOpen}
