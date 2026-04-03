@@ -65,9 +65,9 @@ export default function Landing() {
             <Button size="lg" asChild>
               <Link to="/signup">Start Now <ArrowRight className="ml-2 h-4 w-4" /></Link>
             </Button>
-            <Button variant="outline" size="lg" asChild>
+            {/* <Button variant="outline" size="lg" asChild>
               <Link to="/login">Demo Login</Link>
-            </Button>
+            </Button> */}
           </div>
         </motion.div>
       </section>
@@ -180,9 +180,9 @@ export default function Landing() {
               <Button size="lg" asChild>
                 <Link to="/signup">Create Free Account <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
-              <Button variant="outline" size="lg" asChild>
+              {/* <Button variant="outline" size="lg" asChild>
                 <Link to="/login">Explore Demo</Link>
-              </Button>
+              </Button> */}
             </div>
           </motion.div>
         </div>
