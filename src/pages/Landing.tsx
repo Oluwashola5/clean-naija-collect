@@ -188,7 +188,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Demo credentials 
+      {/* Demo credentials */}
       <section className="container py-16">
         <div className="rounded-xl border bg-card p-6 md:p-8 max-w-2xl mx-auto">
           <h2 className="text-xl font-bold mb-4 text-center">Demo Credentials</h2>
@@ -202,7 +202,7 @@ export default function Landing() {
           </div>
         </div>
       </section>
-      */}
+      
 
       {/* Footer */}
       <footer className="border-t py-8">
