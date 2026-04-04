@@ -65,7 +65,7 @@ export default function Login() {
             <Button type="submit" className="w-full" disabled={loading}>{loading ? "Signing in..." : "Sign In"}</Button>
           </form>
 
-          <div className="mt-6 space-y-2">
+          {/* <div className="mt-6 space-y-2">
             <p className="text-xs text-center text-muted-foreground font-medium">Quick Demo Login</p>
             <div className="grid gap-2">
               {demoCredentials.map((c) => (
@@ -75,7 +75,7 @@ export default function Login() {
                 </Button>
               ))}
             </div>
-          </div>
+          </div> */}
 
           <p className="mt-4 text-center text-sm text-muted-foreground">
             Don't have an account? <Link to="/signup" className="text-primary hover:underline">Sign up</Link>
